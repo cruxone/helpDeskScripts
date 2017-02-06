@@ -1,4 +1,4 @@
-﻿Import-Module activedirectory
+Import-Module activedirectory
 
 $emailSmtpServer = "smtp.office365.com"
 $emailSmtpServerPort = "587"
@@ -31,12 +31,15 @@ function emailManagers {
     $exportUsers = @()
     ForEach ($user in $expiringAccounts) {
         $exportUser = get-aduser -Identity $user -Properties AccountExpirationDate,Manager,Enabled | `
-        select AccountExpirationDate,name,Enabled,@{N='Manager';E={(Get-ADUser $_.Manager).samaccountName}} | Sort-Object Manager
+            select AccountExpirationDate,name,Enabled,@{N='Manager';E={(Get-ADUser $_.Manager).samaccountName}} | Sort-Object Manager
         $exportUsers += $exportUser
         $userManager = (get-aduser (get-aduser -identity $user -Properties manager).manager).samaccountname
         $managerMessage = New-Object System.Net.Mail.MailMessage
         $managerMessage.From = $emailSmtpUser
-        $emailMessage.To.Add( $userManager + "@learning.com")
+
+        write-host $userManager
+
+        $managerMessage.To.Add($userManager + "@learning.com")
         $managerMessage.Subject = $user.Name + " Account is expiring"
         $managerMessage.IsBodyHtml = $true
         $managerMessage.Body = "Hello,<br /> <br />You are receiveing this email because you are the registered manager for <b>" + $user.Name `
@@ -45,10 +48,10 @@ function emailManagers {
                              + "</b>. We can extend this by up to one year. If you would like an extension to this account " `
                              + "or the manager of the account to be changed, please email helpdesk@learning.com." `
                              + "<br /> <br />Thank you,<br />CF"
-        $SMTPClient.Send($managerMessage)
+        #$SMTPClient.Send($managerMessage)
     }
     $exportUsers | Export-Csv -Delimiter "," $filePath -NoTypeInformation
     write $exportUsers
-    emailTeam($filePath)
+    #emailTeam($filePath)
 }
 emailManagers
